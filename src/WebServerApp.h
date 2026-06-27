@@ -27,7 +27,7 @@ private:
     uint32_t slot;
     String hour;
     float temperature;
-    float humidity;
+    int humidity;
     int pressure;
   };
 

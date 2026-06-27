@@ -13,7 +13,7 @@ function formatTooltipHour(point) {
 }
 
 function formatAxisHour(hour) {
-    return String(parseInt(String(hour).split(' ')[0].split(':')[0], 10));
+    return String(hour);
 }
 
 function normalizePressure(pressure) {

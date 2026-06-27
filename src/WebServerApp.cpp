@@ -5,6 +5,16 @@
 
 #include "config.h"
 
+namespace {
+float roundedTemperature(float temperature) {
+  return roundf(temperature * 10.0f) / 10.0f;
+}
+
+int roundedHumidity(float humidity) {
+  return static_cast<int>(roundf(humidity));
+}
+}  // namespace
+
 WebServerApp::WebServerApp(MeasurementReader reader, WifiReconnect reconnect)
     : server_(80),
       reader_(reader),
@@ -87,6 +97,10 @@ void WebServerApp::loadHistory() {
   historyCount_ = 0;
   hasLastHistorySlot_ = false;
 
+  if (!LittleFS.exists(HISTORY_FILE)) {
+    return;
+  }
+
   File file = LittleFS.open(HISTORY_FILE, "r");
   if (!file) {
     return;
@@ -109,8 +123,8 @@ void WebServerApp::loadHistory() {
     HistoryRecord& record = history_[historyCount_++];
     record.slot = item["slot"] | 0;
     record.hour = String(item["hour"] | "");
-    record.temperature = item["temperature"] | 0.0f;
-    record.humidity = item["humidity"] | 0.0f;
+    record.temperature = roundedTemperature(item["temperature"] | 0.0f);
+    record.humidity = roundedHumidity(item["humidity"] | 0.0f);
     record.pressure = item["pressure"] | 0;
   }
 
@@ -171,8 +185,8 @@ void WebServerApp::addHistoryRecord(const Measurement& measurement, time_t now) 
   HistoryRecord& record = history_[historyCount_++];
   record.slot = measurementSlot(now);
   record.hour = measurementHour(now);
-  record.temperature = measurement.temperature;
-  record.humidity = measurement.humidity;
+  record.temperature = roundedTemperature(measurement.temperature);
+  record.humidity = roundedHumidity(measurement.humidity);
   record.pressure = static_cast<int>(roundf(measurement.pressure));
 
   saveHistory();
@@ -181,8 +195,8 @@ void WebServerApp::addHistoryRecord(const Measurement& measurement, time_t now) 
 String WebServerApp::buildWeatherJson(const Measurement& current) {
   JsonDocument doc;
   JsonObject currentJson = doc["current"].to<JsonObject>();
-  currentJson["temperature"] = current.temperature;
-  currentJson["humidity"] = current.humidity;
+  currentJson["temperature"] = roundedTemperature(current.temperature);
+  currentJson["humidity"] = roundedHumidity(current.humidity);
   currentJson["pressure"] = static_cast<int>(roundf(current.pressure));
   currentJson["batteryPercent"] = current.batteryPercent;
 
@@ -208,6 +222,10 @@ String WebServerApp::buildScript(const Measurement& current) {
 }
 
 String WebServerApp::loadTextFile(const char* path) {
+  if (!LittleFS.exists(path)) {
+    return String();
+  }
+
   File file = LittleFS.open(path, "r");
   if (!file) {
     return String();
@@ -219,6 +237,13 @@ String WebServerApp::loadTextFile(const char* path) {
 }
 
 void WebServerApp::sendFile(const char* path, const char* contentType) {
+  if (!LittleFS.exists(path)) {
+    Serial.print("Brak pliku LittleFS: ");
+    Serial.println(path);
+    server_.send(404, "text/plain", "Not found");
+    return;
+  }
+
   File file = LittleFS.open(path, "r");
   if (!file) {
     server_.send(404, "text/plain", "Not found");
@@ -243,5 +268,8 @@ uint32_t WebServerApp::measurementSlot(time_t now) const {
 String WebServerApp::measurementHour(time_t now) const {
   struct tm timeinfo;
   localtime_r(&now, &timeinfo);
-  return String(timeinfo.tm_hour);
+
+  char buffer[12];
+  snprintf(buffer, sizeof(buffer), "%02d.%02d %02d:00", timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_hour);
+  return String(buffer);
 }

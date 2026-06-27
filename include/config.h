@@ -22,7 +22,7 @@ constexpr float PRESSURE_FALLBACK_HPA = 1013.25f;
 constexpr int PRESSURE_READ_ATTEMPTS = 3;
 
 constexpr uint32_t HISTORY_INTERVAL_SECONDS = 60 * 60;
-constexpr size_t MAX_HISTORY_RECORDS = 24;
+constexpr size_t MAX_HISTORY_RECORDS = 7 * 24;
 constexpr const char* HISTORY_FILE = "/measurements_history.json";
 
 constexpr uint32_t WIFI_CONNECT_TIMEOUT_MS = 30000;

@@ -146,7 +146,7 @@ Measurement readValues() {
   }
 
   Measurement measurement;
-  measurement.temperature = (tempSht + tempLps) / 2.0f;
+  measurement.temperature = tempSht;
   measurement.humidity = humidity;
   measurement.pressure = reducePressure(pressure);
   measurement.batteryPercent = readBatteryPercent();
