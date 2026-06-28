@@ -171,6 +171,7 @@ void setup() {
   }
 
   analogReadResolution(12);
+  analogSetPinAttenuation(BATTERY_ADC_PIN, ADC_11db);
   pinMode(BATTERY_ADC_PIN, INPUT);
 
   if (!connectWifi()) {
