@@ -13,7 +13,9 @@ function formatTooltipHour(point) {
 }
 
 function formatAxisHour(hour) {
-    return String(hour);
+    var text = String(hour);
+    var match = text.match(/(\d{2}:\d{2})$/);
+    return match ? match[1] : text;
 }
 
 function normalizePressure(pressure) {
@@ -117,12 +119,16 @@ var temperatureHumidityChart = Highcharts.chart('container', {
                 }
             },
             labels: {
+                reserveSpace: false,
+                align: 'right',
+                x: -8,
+                y: 4,
                 style: {
                     fontSize: '12px',
                     color: '#f5f5f5'
                 }
             },
-            opposite: false
+            opposite: true
         },
         {
             title: {
@@ -132,6 +138,10 @@ var temperatureHumidityChart = Highcharts.chart('container', {
                 }
             },
             labels: {
+                reserveSpace: false,
+                align: 'right',
+                x: -48,
+                y: 4,
                 style: {
                     fontSize: '12px',
                     color: '#f5f5f5'
@@ -260,14 +270,15 @@ var pressureChart = Highcharts.chart('containerPressure', {
         labels: {
             enabled: true,
             reserveSpace: false,
-            align: 'left',
-            x: 8,
+            align: 'right',
+            x: -8,
             y: 4,
             style: {
                 fontSize: '12px',
                 color: '#f5f5f5'
             }
-        }
+        },
+        opposite: true
     },
 
     tooltip: {

@@ -42,7 +42,7 @@ private:
   String buildScript(const Measurement& current);
   String loadTextFile(const char* path);
   void sendFile(const char* path, const char* contentType);
-  bool isFullHour(time_t now) const;
+  bool isHistorySlotBoundary(time_t now) const;
   uint32_t measurementSlot(time_t now) const;
   String measurementHour(time_t now) const;
 

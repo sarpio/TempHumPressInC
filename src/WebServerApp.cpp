@@ -273,7 +273,7 @@ bool WebServerApp::importHistory(const String& payload, String& response) {
 
 void WebServerApp::updateHistory() {
   const time_t now = time(nullptr);
-  if (now < 100000 || !isFullHour(now)) {
+  if (now < 100000 || !isHistorySlotBoundary(now)) {
     return;
   }
 
@@ -370,10 +370,10 @@ void WebServerApp::sendFile(const char* path, const char* contentType) {
   file.close();
 }
 
-bool WebServerApp::isFullHour(time_t now) const {
+bool WebServerApp::isHistorySlotBoundary(time_t now) const {
   struct tm timeinfo;
   localtime_r(&now, &timeinfo);
-  return timeinfo.tm_min == 0;
+  return timeinfo.tm_min % 30 == 0;
 }
 
 uint32_t WebServerApp::measurementSlot(time_t now) const {
@@ -384,7 +384,7 @@ String WebServerApp::measurementHour(time_t now) const {
   struct tm timeinfo;
   localtime_r(&now, &timeinfo);
 
-  char buffer[12];
-  snprintf(buffer, sizeof(buffer), "%02d.%02d %02d:00", timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_hour);
+  char buffer[6];
+  snprintf(buffer, sizeof(buffer), "%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
   return String(buffer);
 }
