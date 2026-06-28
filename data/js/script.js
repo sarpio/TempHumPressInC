@@ -62,20 +62,14 @@ function renderBatteryLevel() {
     var container = document.getElementById('batteryLevel');
     var latest = weatherData.current || {};
     var percent = latest.batteryPercent;
+    var voltage = latest.batteryVoltage;
 
-    if (!container || percent === undefined || percent === null) {
+    if (!container || percent === undefined || percent === null || voltage === undefined || voltage === null) {
         return;
     }
 
-    var filledBars = Math.ceil(percent / 20);
-    var bars = '';
-
-    for (var i = 1; i <= 5; i += 1) {
-        bars += '<span class="battery-bar' + (i <= filledBars ? ' is-filled' : '') + '"></span>';
-    }
-
-    container.title = 'Bateria: ' + percent.toFixed(0) + '%';
-    container.innerHTML = bars;
+    container.title = 'Bateria: ' + percent.toFixed(0) + '% / ' + voltage.toFixed(2) + ' V';
+    container.textContent = 'Bateria: ' + percent.toFixed(0) + '% / ' + voltage.toFixed(2) + ' V';
 }
 
 renderLatestValues();

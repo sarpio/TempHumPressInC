@@ -23,9 +23,12 @@ float reducePressure(float pressure) {
   return pressure + PRESSURE_REDUCTION_HPA;
 }
 
-int readBatteryPercent() {
+float readBatteryVoltage() {
   const int raw = analogRead(BATTERY_ADC_PIN);
-  const float voltage = static_cast<float>(raw) * 3.3f / 4095.0f * BATTERY_VOLTAGE_DIVIDER;
+  return static_cast<float>(raw) * 3.3f / 4095.0f * BATTERY_VOLTAGE_DIVIDER;
+}
+
+int batteryPercentFromVoltage(float voltage) {
   const float percent = (voltage - BATTERY_EMPTY_VOLTAGE) * 100.0f
       / (BATTERY_FULL_VOLTAGE - BATTERY_EMPTY_VOLTAGE);
   return constrain(static_cast<int>(roundf(percent)), 0, 100);
@@ -149,7 +152,8 @@ Measurement readValues() {
   measurement.temperature = tempSht;
   measurement.humidity = humidity;
   measurement.pressure = reducePressure(pressure);
-  measurement.batteryPercent = readBatteryPercent();
+  measurement.batteryVoltage = readBatteryVoltage();
+  measurement.batteryPercent = batteryPercentFromVoltage(measurement.batteryVoltage);
   return measurement;
 }
 

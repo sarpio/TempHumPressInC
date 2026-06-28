@@ -11,7 +11,7 @@ constexpr int I2C_SCL_PIN = 6;
 constexpr uint32_t I2C_FREQUENCY = 400000;
 
 constexpr int BATTERY_ADC_PIN = 1;
-constexpr float BATTERY_VOLTAGE_DIVIDER = 2.0f;
+constexpr float BATTERY_VOLTAGE_DIVIDER = 2.156f;
 constexpr float BATTERY_EMPTY_VOLTAGE = 3.3f;
 constexpr float BATTERY_FULL_VOLTAGE = 4.2f;
 

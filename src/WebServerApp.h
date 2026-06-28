@@ -10,6 +10,7 @@ struct Measurement {
   float temperature;
   float humidity;
   float pressure;
+  float batteryVoltage;
   int batteryPercent;
 };
 
@@ -33,7 +34,8 @@ private:
 
   void setupRoutes();
   void loadHistory();
-  void saveHistory();
+  bool saveHistory();
+  bool importHistory(const String& payload, String& response);
   void updateHistory();
   void addHistoryRecord(const Measurement& measurement, time_t now);
   String buildWeatherJson(const Measurement& current);

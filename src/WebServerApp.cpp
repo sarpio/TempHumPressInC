@@ -76,6 +76,17 @@ void WebServerApp::setupRoutes() {
     server_.send(200, "application/json; charset=utf-8", buildWeatherJson(measurement));
   });
 
+  server_.on("/history", HTTP_POST, [this]() {
+    String response;
+
+    if (importHistory(server_.arg("plain"), response)) {
+      server_.send(200, "application/json; charset=utf-8", response);
+      return;
+    }
+
+    server_.send(400, "application/json; charset=utf-8", response);
+  });
+
   server_.on("/js/script.js", HTTP_GET, [this]() {
     const Measurement measurement = reader_();
     server_.sendHeader("Cache-Control", "no-cache");
@@ -134,7 +145,7 @@ void WebServerApp::loadHistory() {
   }
 }
 
-void WebServerApp::saveHistory() {
+bool WebServerApp::saveHistory() {
   JsonDocument doc;
   JsonArray array = doc.to<JsonArray>();
 
@@ -150,11 +161,114 @@ void WebServerApp::saveHistory() {
   File file = LittleFS.open(HISTORY_FILE, "w");
   if (!file) {
     Serial.println("Nie udalo sie zapisac historii");
-    return;
+    return false;
   }
 
   serializeJson(doc, file);
   file.close();
+  return true;
+}
+
+bool WebServerApp::importHistory(const String& payload, String& response) {
+  JsonDocument responseDoc;
+  String jsonPayload = payload;
+  jsonPayload.trim();
+
+  if (jsonPayload.length() == 0) {
+    responseDoc["error"] = "empty body";
+    serializeJson(responseDoc, response);
+    return false;
+  }
+
+  const char firstChar = jsonPayload.charAt(0);
+  if (firstChar != '{' && firstChar != '[') {
+    const int objectStart = jsonPayload.indexOf('{');
+    const int arrayStart = jsonPayload.indexOf('[');
+    const int start = objectStart < 0 ? arrayStart : (arrayStart < 0 ? objectStart : min(objectStart, arrayStart));
+    const int objectEnd = jsonPayload.lastIndexOf('}');
+    const int arrayEnd = jsonPayload.lastIndexOf(']');
+    const int end = max(objectEnd, arrayEnd);
+
+    if (start >= 0 && end > start) {
+      jsonPayload = jsonPayload.substring(start, end + 1);
+    }
+  }
+
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, jsonPayload);
+
+  if (error) {
+    responseDoc["error"] = "invalid json";
+    responseDoc["detail"] = error.c_str();
+    responseDoc["bytes"] = payload.length();
+    serializeJson(responseDoc, response);
+    return false;
+  }
+
+  JsonArray array;
+  if (doc.is<JsonArray>()) {
+    array = doc.as<JsonArray>();
+  } else if (doc["measurements"].is<JsonArray>()) {
+    array = doc["measurements"].as<JsonArray>();
+  }
+
+  if (array.isNull()) {
+    responseDoc["error"] = "expected array or measurements array";
+    serializeJson(responseDoc, response);
+    return false;
+  }
+
+  size_t validCount = 0;
+  for (JsonObject item : array) {
+    if (item["slot"].isNull() || item["hour"].isNull() || item["temperature"].isNull()
+        || item["humidity"].isNull() || item["pressure"].isNull()) {
+      continue;
+    }
+
+    validCount++;
+  }
+
+  if (validCount == 0) {
+    responseDoc["error"] = "no valid history records";
+    serializeJson(responseDoc, response);
+    return false;
+  }
+
+  historyCount_ = 0;
+  for (JsonObject item : array) {
+    if (item["slot"].isNull() || item["hour"].isNull() || item["temperature"].isNull()
+        || item["humidity"].isNull() || item["pressure"].isNull()) {
+      continue;
+    }
+
+    if (historyCount_ == MAX_HISTORY_RECORDS) {
+      for (size_t i = 1; i < historyCount_; i++) {
+        history_[i - 1] = history_[i];
+      }
+      historyCount_--;
+    }
+
+    HistoryRecord& record = history_[historyCount_++];
+    record.slot = item["slot"] | 0;
+    record.hour = String(item["hour"] | "");
+    record.temperature = roundedTemperature(item["temperature"] | 0.0f);
+    record.humidity = roundedHumidity(item["humidity"] | 0.0f);
+    record.pressure = item["pressure"] | 0;
+  }
+
+  lastHistorySlot_ = history_[historyCount_ - 1].slot;
+  hasLastHistorySlot_ = true;
+
+  if (!saveHistory()) {
+    responseDoc["error"] = "history save failed";
+    serializeJson(responseDoc, response);
+    return false;
+  }
+
+  responseDoc["status"] = "ok";
+  responseDoc["imported"] = historyCount_;
+  serializeJson(responseDoc, response);
+  return true;
 }
 
 void WebServerApp::updateHistory() {
@@ -198,6 +312,7 @@ String WebServerApp::buildWeatherJson(const Measurement& current) {
   currentJson["temperature"] = roundedTemperature(current.temperature);
   currentJson["humidity"] = roundedHumidity(current.humidity);
   currentJson["pressure"] = static_cast<int>(roundf(current.pressure));
+  currentJson["batteryVoltage"] = roundf(current.batteryVoltage * 100.0f) / 100.0f;
   currentJson["batteryPercent"] = current.batteryPercent;
 
   JsonArray measurements = doc["measurements"].to<JsonArray>();

@@ -36,18 +36,11 @@ body {
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
     display: flex;
     justify-content: center;
-    gap: 8px;
-}
-
-.battery-bar {
-    width: 36px;
-    height: 10px;
-    border-radius: 3px;
-    background: #444;
-}
-
-.battery-bar.is-filled {
-    background: #34c759;
+    color: #34c759;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
 }
 
 .latest-item {
